@@ -26,7 +26,6 @@ class Servidor:
         self.job_em_processamento = None
         self.total_de_jobs = 0
         self.tipo_do_tempo_de_serviço = tipo_do_tempo_de_serviço
-        self.tempo_ocupado = 0  # Serve para calculo da utilização
 
 
     def empilhar(self, job, tempo_do_evento, eventos):
@@ -66,7 +65,6 @@ class Servidor:
             self.total_de_jobs += 1
             evento = (tempo_do_evento + tempo_de_serviço, id(self), self ,"saída")
             heapq.heappush(eventos, evento)
-            self.tempo_ocupado += tempo_de_serviço # Serve para calculo da utilização
             #print(f"servidor {self.nome}")
             #print(f"Job na fila: tempo de serviço: {tempo_de_serviço}, tempo do evento: {tempo_do_evento} - tempo_na_entrada: {self.job_em_processamento.tempo_na_entrada} => entrada do job: {self.job_em_processamento.tempo_na_entrada} e saida do job: {self.job_em_processamento.tempo_na_saida}")
             self.ocupado = True
@@ -144,13 +142,8 @@ class Sistema:
                     if self.jobs_completados >= self.warmup_jobs:
                         self.tempos_no_sistema_de_cada_job.append(job_finalizado.tempo_na_saida - job_finalizado.tempo_na_entrada)
                     self.jobs_completados += 1
-            self.tempo_total = tempo_do_evento # Serve para calculo da utilização
 
     def calcular_metricas(self):
         média_do_tempo = np.mean(self.tempos_no_sistema_de_cada_job)
         desvio_padrão = np.std(self.tempos_no_sistema_de_cada_job)
         return média_do_tempo, desvio_padrão
-
-    def calcular_utilização(self):
-        for nome, servidor in self.servidores.items():
-            print(f"Utilização do servidor {nome}: {servidor.tempo_ocupado/self.tempo_total}")

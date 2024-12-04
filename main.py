@@ -8,7 +8,6 @@ if __name__ == "__main__":
     media1, desvio_padrão1 = sistema1.calcular_metricas()
     print(f"Média do tempo: {media1}")
     print(f"Desvio padrão: {desvio_padrão1}")
-    sistema1.calcular_utilização()
 
     print()
 
