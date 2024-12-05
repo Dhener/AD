@@ -26,7 +26,7 @@ O sistema é composto por:
 - A fila de eventos utiliza uma heap mínima para processar os eventos em ordem cronológica.
 - **Operações**:
   - **Inserção de evento (`heapq.heappush`)**: O(log n).
-  - **Extração do menor evento (`heapq.heappop`)**: O(1).
+  - **Extração do menor evento (`heapq.heappop`)**: O(log n).
 - A estrutura é eficiente para cenários onde é necessário manter os eventos ordenados dinamicamente.
 
 ### **3. Lista de Tempos (`list`)**
