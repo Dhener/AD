@@ -1,7 +1,9 @@
 import heapq
-from random import uniform
+from random import uniform, seed
 from math import log
 import numpy as np
+
+seed(42)
 
 def inverse_of_cdf(Lambda):
     u = uniform(0,1)
@@ -26,6 +28,9 @@ class Servidor:
         self.job_em_processamento = None
         self.total_de_jobs = 0
         self.tipo_do_tempo_de_serviço = tipo_do_tempo_de_serviço
+        self.tempo_ocupado = 0  # Serve para calculo da utilização
+        self.tamanhos_da_fila = []  # Rastrear tamanhos da fila ao longo do tempo
+        self.eventos_tempo = []
 
 
     def empilhar(self, job, tempo_do_evento, eventos):
@@ -65,6 +70,10 @@ class Servidor:
             self.total_de_jobs += 1
             evento = (tempo_do_evento + tempo_de_serviço, id(self), self ,"saída")
             heapq.heappush(eventos, evento)
+            self.tempo_ocupado += tempo_de_serviço # Serve para calculo da utilização
+            # Atualizar tamanho da fila para análise
+            self.tamanhos_da_fila.append(len(self.fila))
+            self.eventos_tempo.append(tempo_do_evento)
             #print(f"servidor {self.nome}")
             #print(f"Job na fila: tempo de serviço: {tempo_de_serviço}, tempo do evento: {tempo_do_evento} - tempo_na_entrada: {self.job_em_processamento.tempo_na_entrada} => entrada do job: {self.job_em_processamento.tempo_na_entrada} e saida do job: {self.job_em_processamento.tempo_na_saida}")
             self.ocupado = True
@@ -89,61 +98,91 @@ class Sistema:
 
     def planejar_chegadas(self):
         """Planeja todos os eventos de chegada antes do processamento."""
+
         tempo_atual = 0
         total_jobs = self.warmup_jobs + self.próximos_jobs
+
         for _ in range(total_jobs):
             evento_chegada = (tempo_atual, id(self.servidores["S1"]), self.servidores["S1"], "chegada")
             heapq.heappush(self.eventos, evento_chegada)
-            tempo_atual += inverse_of_cdf(2)  # Tempo entre chegadas
+            tempo_atual += inverse_of_cdf(2)  # Gerando tempo entre chegadas
         #print(self.eventos)
 
     def rodar_o_sistema(self):
         """Executa o processamento baseado na fila de eventos."""
         while self.jobs_completados < self.warmup_jobs + self.próximos_jobs:
+
             evento = heapq.heappop(self.eventos)
             #print(f"evento retirado: {evento}")
+
             tempo_do_evento = evento[0]
             servidor = evento[2]
             tipo_de_evento = evento[3]
 
             if tipo_de_evento == "chegada":
                 """ Processar evento programado para chegada """
-                job = Job(tempo_do_evento)
-                self.servidores["S1"].empilhar(job, tempo_do_evento, self.eventos)
+
+                job = Job(tempo_do_evento) # Criando um Job chegando no servidor 1
+
+                self.servidores["S1"].empilhar(job, tempo_do_evento, self.eventos) # Empilhando o Job na fila do servidor 1
+
             else:
-                """ Processar evento já programado para saída """
-                job_finalizado = servidor.retornar_job_processado(tempo_do_evento, self.eventos)
+                """ Processar evento programado para saída """
+
+                job_finalizado = servidor.retornar_job_processado(tempo_do_evento, self.eventos) # Job que acabou de sair do servidor
 
                 if servidor.nome == "S1":
-
                     """ Caso o job estiver saindo do servidor 1"""
-                    p1 = uniform(0, 1)
+
+                    p1 = uniform(0, 1) 
+
                     if p1 <= 0.5:
                         """ Probabilidade de aceitação para o job ir para o servidor 2 """
+
                         self.servidores["S2"].empilhar(job_finalizado, tempo_do_evento, self.eventos)
+
                     else:
                         """ Probabilidade de aceitação para o job ir para o servidor 3 """
+
                         self.servidores["S3"].empilhar(job_finalizado, tempo_do_evento, self.eventos)
 
                 elif servidor.nome == "S2":
                     """ Caso o job estiver saindo do servidor 2 """
+
                     p2 = uniform(0, 1)
+
                     if p2 <= 0.2:
                         """ Probabilidade de aceitação para o job voltar para o servidor 2 """
+
                         self.servidores["S2"].empilhar(job_finalizado, tempo_do_evento, self.eventos)
+
                     else:
                         """ Probabilidade de aceitação para o job sair do servidor 2 """
+
                         if self.jobs_completados >= self.warmup_jobs:
+                            """ Considerando apenas os Jobs depois dos 10.000 descartados """
                             self.tempos_no_sistema_de_cada_job.append(job_finalizado.tempo_na_saida - job_finalizado.tempo_na_entrada)
+
                         self.jobs_completados += 1
                 else:
                     # servidor.nome == "S3"
                     """ Probabilidade de aceitação para o job sair do servidor 3 """
+
                     if self.jobs_completados >= self.warmup_jobs:
+                        """ Considerando apenas os Jobs depois dos 10.000 descartados """
                         self.tempos_no_sistema_de_cada_job.append(job_finalizado.tempo_na_saida - job_finalizado.tempo_na_entrada)
+
                     self.jobs_completados += 1
+
+            self.tempo_total = tempo_do_evento # Serve para calculo da utilização
 
     def calcular_metricas(self):
         média_do_tempo = np.mean(self.tempos_no_sistema_de_cada_job)
         desvio_padrão = np.std(self.tempos_no_sistema_de_cada_job)
         return média_do_tempo, desvio_padrão
+
+    def calcular_utilização(self):
+        utilizações = []
+        for nome, servidor in self.servidores.items():
+           utilizações.append(servidor.tempo_ocupado/self.tempo_total)
+        return utilizações
