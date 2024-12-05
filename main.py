@@ -39,7 +39,7 @@ def plot_resultados(sistema):
 
 if __name__ == "__main__":
 
-    print("## Métricas do servidor 1")
+    print("## Métricas do caso 1")
 
     print()
 
@@ -49,13 +49,11 @@ if __name__ == "__main__":
     media1, desvio_padrão1 = sistema1.calcular_metricas()
     print(f"Média do tempo: {media1}")
     print(f"Desvio padrão: {desvio_padrão1}")
-    print("--------------------------------")
-    #sistema1.calcular_utilização()
-    plot_resultados(sistema1)
+    #plot_resultados(sistema1)
 
     print()
 
-    print("## Métricas do servidor 2")
+    print("## Métricas do caso 2")
 
     print()
 
@@ -65,13 +63,11 @@ if __name__ == "__main__":
     media2, desvio_padrão2 = sistema2.calcular_metricas()
     print(f"Média do tempo: {media2}")
     print(f"Desvio padrão: {desvio_padrão2}")
-    print("--------------------------------")
-    #sistema2.calcular_utilização()
-    plot_resultados(sistema2)
+    #plot_resultados(sistema2)
 
     print()
 
-    print("## Métricas do servidor 3")
+    print("## Métricas do caso 3")
 
     print()
 
@@ -81,6 +77,4 @@ if __name__ == "__main__":
     media3, desvio_padrão3 = sistema3.calcular_metricas()
     print(f"Média do tempo: {media3}")
     print(f"Desvio padrão: {desvio_padrão3}")
-    print("--------------------------------")
-    #sistema3.calcular_utilização()
-    plot_resultados(sistema3)
+    #plot_resultados(sistema3)

@@ -5,10 +5,11 @@ import numpy as np
 
 seed(42)
 
-def inverse_of_cdf(Lambda):
+def inversa_da_cdf(Lambda):
+    """ Processo de poisson que gera tempos com distribuição exponencial"""
     u = uniform(0,1)
     x = (-1) * log(1 - u) / Lambda
-    x = round(x, 4)
+    #x = round(x, 4)
     return x
 
 class Job:
@@ -30,7 +31,7 @@ class Servidor:
         self.tipo_do_tempo_de_serviço = tipo_do_tempo_de_serviço
         self.tempo_ocupado = 0  # Serve para calculo da utilização
         self.tamanhos_da_fila = []  # Rastrear tamanhos da fila ao longo do tempo
-        self.eventos_tempo = []
+        self.eventos_tempo = [] # Rastrear tempos do tamanho da fila ao longo do tempo
 
 
     def empilhar(self, job, tempo_do_evento, eventos):
@@ -55,29 +56,30 @@ class Servidor:
                 return uniform(0.1, 1.8)
         else:
             if self.nome == "S1":
-                return inverse_of_cdf(1/0.4)
+                return inversa_da_cdf(1/0.4)
             elif self.nome == "S2":
-                return inverse_of_cdf(1/0.6)
+                return inversa_da_cdf(1/0.6)
             else:
-                return inverse_of_cdf(1/0.95)
+                return inversa_da_cdf(1/0.95)
 
     def processar(self, tempo_do_evento, eventos):
 
         if len(self.fila) > 0:
+
             self.job_em_processamento = self.fila.pop(0)
+
             tempo_de_serviço = self.gerar_tempo_de_serviço(self.tipo_do_tempo_de_serviço)
             self.job_em_processamento.processar(tempo_do_evento + tempo_de_serviço)
             self.total_de_jobs += 1
-            evento = (tempo_do_evento + tempo_de_serviço, id(self), self ,"saída")
+
+            evento = (tempo_do_evento + tempo_de_serviço, "saída", self.nome)
             heapq.heappush(eventos, evento)
+
             self.tempo_ocupado += tempo_de_serviço # Serve para calculo da utilização
-            # Atualizar tamanho da fila para análise
-            self.tamanhos_da_fila.append(len(self.fila))
+            
+            self.tamanhos_da_fila.append(len(self.fila)) # Atualizar tamanho da fila para análise
             self.eventos_tempo.append(tempo_do_evento)
-            #print(f"servidor {self.nome}")
-            #print(f"Job na fila: tempo de serviço: {tempo_de_serviço}, tempo do evento: {tempo_do_evento} - tempo_na_entrada: {self.job_em_processamento.tempo_na_entrada} => entrada do job: {self.job_em_processamento.tempo_na_entrada} e saida do job: {self.job_em_processamento.tempo_na_saida}")
             self.ocupado = True
-            #print(eventos)
 
     def retornar_job_processado(self, tempo_do_evento, eventos):
         job_finalizado = self.job_em_processamento
@@ -103,21 +105,19 @@ class Sistema:
         total_jobs = self.warmup_jobs + self.próximos_jobs
 
         for _ in range(total_jobs):
-            evento_chegada = (tempo_atual, id(self.servidores["S1"]), self.servidores["S1"], "chegada")
+            evento_chegada = (tempo_atual, "chegada", "S1")
             heapq.heappush(self.eventos, evento_chegada)
-            tempo_atual += inverse_of_cdf(2)  # Gerando tempo entre chegadas
-        #print(self.eventos)
+            tempo_atual += inversa_da_cdf(2)  # Gerando tempo entre chegadas
 
     def rodar_o_sistema(self):
         """Executa o processamento baseado na fila de eventos."""
         while self.jobs_completados < self.warmup_jobs + self.próximos_jobs:
 
             evento = heapq.heappop(self.eventos)
-            #print(f"evento retirado: {evento}")
 
             tempo_do_evento = evento[0]
-            servidor = evento[2]
-            tipo_de_evento = evento[3]
+            tipo_de_evento = evento[1]
+            servidor = self.servidores[evento[2]]
 
             if tipo_de_evento == "chegada":
                 """ Processar evento programado para chegada """
