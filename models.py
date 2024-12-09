@@ -6,7 +6,7 @@ import numpy as np
 seed(42)
 
 def inversa_da_cdf(Lambda):
-    """ Processo de poisson que gera tempos com distribuição exponencial"""
+    """ Inversa da cdf de uma distribuição exponencial """
     u = uniform(0,1)
     x = (-1) * log(1 - u) / Lambda
     #x = round(x, 4)
@@ -18,6 +18,7 @@ class Job:
     self.tempo_na_saida = None
 
   def processar(self, tempo_na_saida):
+    """ Função que setar o tempo de saída do job, ja considerando tempo de espera até ser processado e o tempo de processamento dele """
     self.tempo_na_saida = tempo_na_saida
 
 
@@ -35,11 +36,14 @@ class Servidor:
 
 
     def empilhar(self, job, tempo_do_evento, eventos):
+        """ Função que irá empilhar cada job na fila do servidor """
         self.fila.append(job)
         if not self.ocupado:
             self.processar(tempo_do_evento, eventos)
 
     def gerar_tempo_de_serviço(self, tipo):
+        """ Função que irá gerar tempos de serviço com base na sua especificação """
+
         if tipo == "constante":
             if self.nome == "S1":
                 return 0.4
@@ -63,6 +67,13 @@ class Servidor:
                 return inversa_da_cdf(1/0.95)
 
     def processar(self, tempo_do_evento, eventos):
+        """ Função que executará a ação de processamento de cada job.
+            1 - verifico se há alguém na fila
+            2 - retiro o job da fila
+            3 - gero um tempo de serviço
+            4 - inicio o processamento do job
+            5 - programo um evento de saída do servidor
+        """
 
         if len(self.fila) > 0:
 
@@ -82,6 +93,8 @@ class Servidor:
             self.ocupado = True
 
     def retornar_job_processado(self, tempo_do_evento, eventos):
+        """ Função que irá retornar o job que acabou de ser processado (Retorna o job saindo do servidor) """
+
         job_finalizado = self.job_em_processamento
         self.ocupado = False
         self.job_em_processamento = None
@@ -99,7 +112,7 @@ class Sistema:
         self.tempo_total = 0
 
     def planejar_chegadas(self):
-        """Planeja todos os eventos de chegada antes do processamento."""
+        """ Planeja TODOS os eventos de chegada no servidor 1 antes do processamento."""
 
         tempo_atual = 0
         total_jobs = self.warmup_jobs + self.próximos_jobs
@@ -110,7 +123,8 @@ class Sistema:
             tempo_atual += inversa_da_cdf(2)  # Gerando tempo entre chegadas
 
     def rodar_o_sistema(self):
-        """Executa o processamento baseado na fila de eventos."""
+        """ Executa o processamento baseado na fila de eventos """
+
         while self.jobs_completados < self.warmup_jobs + self.próximos_jobs:
 
             evento = heapq.heappop(self.eventos)
@@ -120,19 +134,26 @@ class Sistema:
             servidor = self.servidores[evento[2]]
 
             if tipo_de_evento == "chegada":
-                """ Processar evento programado para chegada """
+                """ 
+                    Processa o evento que foi programado para a chegada no servidor 1. Logo, aqui ele deve fazer duas coisas:
+                    1 - Cria um job, já que é o primeiro evento de chegada no servidor 1 e, consequentemente, ainda não há um job criado.
+                    2 - Como temos um job chegando, fará o de costume que é colocar o job na fila através do método empilhar.
+                """
 
                 job = Job(tempo_do_evento) # Criando um Job chegando no servidor 1
 
                 self.servidores["S1"].empilhar(job, tempo_do_evento, self.eventos) # Empilhando o Job na fila do servidor 1
 
             else:
-                """ Processar evento programado para saída """
+                """ Processa o evento programado para saída tanto no servidor 1, 2 ou 3. Logo, aqui eu uso o método retornar_job_processado,
+                    uma vez que esse método vai simbolizar literalmente o job saindo do servidor e dependendo de qual servidor ele esteja saindo
+                    terá um tratamento diferente. 
+                """
 
                 job_finalizado = servidor.retornar_job_processado(tempo_do_evento, self.eventos) # Job que acabou de sair do servidor
 
                 if servidor.nome == "S1":
-                    """ Caso o job estiver saindo do servidor 1"""
+                    """ Caso o job estiver saindo do servidor 1, eu sorteio uma uniforme para saber se o destino do job será no servidor 2 ou servidor 3 """
 
                     p1 = uniform(0, 1) 
 
@@ -147,7 +168,9 @@ class Sistema:
                         self.servidores["S3"].empilhar(job_finalizado, tempo_do_evento, self.eventos)
 
                 elif servidor.nome == "S2":
-                    """ Caso o job estiver saindo do servidor 2 """
+                    """ Caso o job estiver saindo do servidor 2, eu sorteio uma uniforme para saber se o destino do job será
+                        o servidor 2 novamente ou sair do sistema 
+                    """
 
                     p2 = uniform(0, 1)
 
@@ -157,22 +180,24 @@ class Sistema:
                         self.servidores["S2"].empilhar(job_finalizado, tempo_do_evento, self.eventos)
 
                     else:
-                        """ Probabilidade de aceitação para o job sair do servidor 2 """
+                        """ Probabilidade de aceitação para o job sair do servidor 2, consequentemente, sair do sistema """
 
                         if self.jobs_completados >= self.warmup_jobs:
                             """ Considerando apenas os Jobs depois dos 10.000 descartados """
+
                             self.tempos_no_sistema_de_cada_job.append(job_finalizado.tempo_na_saida - job_finalizado.tempo_na_entrada)
 
-                        self.jobs_completados += 1
+                        self.jobs_completados += 1 # contabilizo a quantidade de jobs saindo do sistema
                 else:
                     # servidor.nome == "S3"
-                    """ Probabilidade de aceitação para o job sair do servidor 3 """
+                    """ Caso o job estiver saindo do servidor 3, eu contabilizo que está saindo do sistema """
 
                     if self.jobs_completados >= self.warmup_jobs:
                         """ Considerando apenas os Jobs depois dos 10.000 descartados """
+
                         self.tempos_no_sistema_de_cada_job.append(job_finalizado.tempo_na_saida - job_finalizado.tempo_na_entrada)
 
-                    self.jobs_completados += 1
+                    self.jobs_completados += 1 # contabilizo a quantidade de jobs saindo do sistema
 
             self.tempo_total = tempo_do_evento # Serve para calculo da utilização
 
