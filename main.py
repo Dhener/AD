@@ -39,11 +39,14 @@ def plot_resultados(sistema):
 
 if __name__ == "__main__":
 
+    PROXIMOS_JOBS = 100000
+    WARM_UP_JOBS = 100000
+
     print("## Métricas do caso 1")
 
     print()
 
-    sistema1 = Sistema(10000, 10000, "constante")
+    sistema1 = Sistema(PROXIMOS_JOBS, WARM_UP_JOBS, "constante")
     sistema1.planejar_chegadas()
     sistema1.rodar_o_sistema()
     media1, desvio_padrão1 = sistema1.calcular_metricas()
@@ -57,7 +60,7 @@ if __name__ == "__main__":
 
     print()
 
-    sistema2 = Sistema(10000, 10000, "uniforme")
+    sistema2 = Sistema(PROXIMOS_JOBS, WARM_UP_JOBS, "uniforme")
     sistema2.planejar_chegadas()
     sistema2.rodar_o_sistema()
     media2, desvio_padrão2 = sistema2.calcular_metricas()
@@ -71,7 +74,7 @@ if __name__ == "__main__":
 
     print()
 
-    sistema3 = Sistema(10000, 10000, "exponencial")
+    sistema3 = Sistema(PROXIMOS_JOBS, WARM_UP_JOBS, "exponencial")
     sistema3.planejar_chegadas()
     sistema3.rodar_o_sistema()
     media3, desvio_padrão3 = sistema3.calcular_metricas()

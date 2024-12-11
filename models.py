@@ -1,9 +1,7 @@
 import heapq
-from random import uniform, seed
+from random import uniform
 from math import log
 import numpy as np
-
-seed(42)
 
 def inversa_da_cdf(Lambda):
     """ Inversa da cdf de uma distribuição exponencial """
